@@ -17,33 +17,62 @@ FROM_EMAIL = os.getenv("FROM_EMAIL")
 if not all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, TO_EMAIL, FROM_EMAIL]):
     raise RuntimeError("❌ SMTP-configuratie ontbreekt of is onvolledig.")
 
+from datetime import datetime
+
 @app.route('/webhook', methods=['POST'])
 def handle_transcript():
-    data = request.get_json(force=True, silent=True)
-
-    if not data:
-        return '❌ Geen JSON ontvangen', 400
-
-    # Gebruik werkelijke velden uit CallFluent
-    name = data.get('name', 'onbekende beller')
-    transcript = data.get('transcription', 'Geen transcript ontvangen')
-
-    subject = f"Nieuw gesprek van {name}"
-    body = f"""
-📞 Nieuw gesprek ontvangen:
-
-👤 Naam: {name}
-
-📝 Transcript:
-{transcript}
-"""
+    print("📥 Binnenkomende /webhook request", flush=True)
 
     try:
-        send_email(subject, body)
+        data = request.get_json(force=True, silent=True)
+        print("📦 JSON geladen:", data, flush=True)
+    except Exception as e:
+        print("❌ Fout bij verwerken JSON:", str(e), flush=True)
+        return '❌ Fout bij verwerken JSON', 400
+
+    if not data:
+        return '❌ Geen geldige data ontvangen', 400
+
+    name = data.get('name', 'onbekende beller')
+    transcript = data.get('transcription', 'Geen transcript ontvangen')
+    phone = data.get('number', 'onbekend nummer')  # Als CallFluent dit ooit meegeeft
+    timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+    subject = "CallFluent Transcriptie"
+    html_body = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>📞 Nieuw gesprek ontvangen</h2>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+          <tr>
+            <th align="left">🕒 Tijdstip</th>
+            <td>{timestamp}</td>
+          </tr>
+          <tr>
+            <th align="left">👤 Naam</th>
+            <td>{name}</td>
+          </tr>
+          <tr>
+            <th align="left">📱 Telefoonnummer</th>
+            <td>{phone}</td>
+          </tr>
+          <tr>
+            <th align="left">📝 Transcript</th>
+            <td><pre style="white-space: pre-wrap;">{transcript}</pre></td>
+          </tr>
+        </table>
+      </body>
+    </html>
+    """
+
+    try:
+        send_email(subject, html_body)
         return '✅ Transcript ontvangen en gemaild', 200
     except Exception as e:
         print("❌ Fout bij verzenden e-mail:", str(e), flush=True)
         return '❌ Fout bij verzenden e-mail', 500
+
+
 
 
 def send_email(subject, body):
