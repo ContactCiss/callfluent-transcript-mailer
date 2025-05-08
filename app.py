@@ -14,16 +14,22 @@ FROM_EMAIL = os.getenv("FROM_EMAIL")
 
 @app.route('/webhook', methods=['POST'])
 def handle_transcript():
-    data = request.json
+    # Probeer JSON te laden, ook als content-type niet klopt
+    data = request.get_json(force=True, silent=True)
+    print("📥 Inkomende data van CallFluent:", data)
+
+    if not data:
+        return '❌ Geen JSON ontvangen', 400
+
     transcript = data.get('transcript')
     caller = data.get('caller', 'onbekend')
     subject = f"Nieuw gesprek van {caller}"
-    
+
     if transcript:
         send_email(subject, transcript)
-        return 'Transcript ontvangen en gemaild', 200
+        return '✅ Transcript ontvangen en gemaild', 200
     else:
-        return 'Geen transcript gevonden', 400
+        return '❌ Geen transcript gevonden', 400
 
 def send_email(subject, body):
     msg = EmailMessage()
