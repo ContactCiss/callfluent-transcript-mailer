@@ -16,7 +16,7 @@ FROM_EMAIL = os.getenv("FROM_EMAIL")
 def handle_transcript():
     # Probeer JSON te laden, ook als content-type niet klopt
     data = request.get_json(force=True, silent=True)
-    print("📥 Inkomende data van CallFluent:", data)
+    print("\U0001F4E5 Inkomende data van CallFluent:", data)
 
     if not data:
         return '❌ Geen JSON ontvangen', 400
@@ -42,11 +42,6 @@ def send_email(subject, body):
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.send_message(msg)
 
-if __name__ == '__main__':
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-
 @app.route('/debug', methods=['POST'])
 def debug_webhook():
     print("==== DEBUGGING WEBHOOK ====")
@@ -55,3 +50,7 @@ def debug_webhook():
     print("JSON:", request.get_json(silent=True))
     return '✅ Debug ontvangen', 200
 
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    print("✅ Server draait op poort:", port)
+    app.run(host="0.0.0.0", port=port)
