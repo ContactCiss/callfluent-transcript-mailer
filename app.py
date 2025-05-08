@@ -75,10 +75,10 @@ def index():
 
 @app.route('/debug', methods=['POST'])
 def debug_webhook():
-    print("==== DEBUGGING ====")
-    print("Headers:", dict(request.headers))
-    print("Raw Body:", request.data.decode())
-    print("JSON:", request.get_json(silent=True))
+    print("==== DEBUGGING CALLFLUENT ====", flush=True)
+    print("Headers:", dict(request.headers), flush=True)
+    print("Raw Body:", request.data.decode(), flush=True)
+    print("JSON:", request.get_json(silent=True), flush=True)
     return '✅ Debug ontvangen', 200
 
 if __name__ == '__main__':
