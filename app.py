@@ -7,23 +7,28 @@ app = Flask(__name__)
 
 # Laad SMTP-configuratie uit omgevingsvariabelen
 SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))  # Standaard SSL-poort
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 TO_EMAIL = os.getenv("TO_EMAIL")
 FROM_EMAIL = os.getenv("FROM_EMAIL")
 
-# Controleer of de SMTP-configuratie volledig is
+# Controleer of alle variabelen aanwezig zijn
 if not all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, TO_EMAIL, FROM_EMAIL]):
     raise RuntimeError("❌ SMTP-configuratie ontbreekt of is onvolledig.")
 
 @app.route('/webhook', methods=['POST'])
 def handle_transcript():
-    data = request.get_json(force=True, silent=True)
-    print("📥 Inkomende data van CallFluent:", data)
+    # Automatische content-type detectie
+    if request.content_type and request.content_type.startswith("application/x-www-form-urlencoded"):
+        data = request.form.to_dict()
+        print("📥 Ontvangen via form-data:", data)
+    else:
+        data = request.get_json(force=True, silent=True)
+        print("📥 Ontvangen via JSON:", data)
 
     if not data:
-        return '❌ Geen JSON ontvangen', 400
+        return '❌ Geen geldige data ontvangen', 400
 
     number = data.get('number', 'onbekend nummer')
     name = data.get('name', 'onbekende beller')
@@ -45,8 +50,12 @@ def handle_transcript():
 {transcript}
 """
 
-    send_email(subject, body)
-    return '✅ Transcript ontvangen en gemaild', 200
+    try:
+        send_email(subject, body)
+        return '✅ Transcript ontvangen en gemaild', 200
+    except Exception as e:
+        print("❌ Fout bij verzenden e-mail:", str(e))
+        return '❌ Fout bij verzenden e-mail', 500
 
 def send_email(subject, body):
     msg = EmailMessage()
@@ -60,18 +69,17 @@ def send_email(subject, body):
         server.send_message(msg)
     print("📧 E-mail succesvol verzonden.")
 
-@app.route('/debug', methods=['POST'])
-def debug_webhook():
-    print("==== DEBUGGING WEBHOOK ====")
-    print("Headers:", dict(request.headers))
-    print("Body:", request.data.decode())
-    print("JSON:", request.get_json(silent=True))
-    return '✅ Debug ontvangen', 200
-
 @app.route('/', methods=['GET'])
 def index():
     return '✅ API staat online', 200
 
+@app.route('/debug', methods=['POST'])
+def debug_webhook():
+    print("==== DEBUGGING ====")
+    print("Headers:", dict(request.headers))
+    print("Raw Body:", request.data.decode())
+    print("JSON:", request.get_json(silent=True))
+    return '✅ Debug ontvangen', 200
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
