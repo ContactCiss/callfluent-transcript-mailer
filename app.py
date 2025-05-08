@@ -19,32 +19,20 @@ if not all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, TO_EMAIL, FROM_EMAIL]):
 
 @app.route('/webhook', methods=['POST'])
 def handle_transcript():
-    # Automatische content-type detectie
-    if request.content_type and request.content_type.startswith("application/x-www-form-urlencoded"):
-        data = request.form.to_dict()
-        print("📥 Ontvangen via form-data:", data)
-    else:
-        data = request.get_json(force=True, silent=True)
-        print("📥 Ontvangen via JSON:", data)
+    data = request.get_json(force=True, silent=True)
 
     if not data:
-        return '❌ Geen geldige data ontvangen', 400
+        return '❌ Geen JSON ontvangen', 400
 
-    number = data.get('number', 'onbekend nummer')
+    # Gebruik werkelijke velden uit CallFluent
     name = data.get('name', 'onbekende beller')
-    email = data.get('email', 'geen e-mailadres opgegeven')
-    transcript = data.get('transcript')
+    transcript = data.get('transcription', 'Geen transcript ontvangen')
 
-    if not transcript:
-        return '❌ Geen transcript gevonden', 400
-
-    subject = f"Nieuw gesprek van {name} ({number})"
+    subject = f"Nieuw gesprek van {name}"
     body = f"""
 📞 Nieuw gesprek ontvangen:
 
 👤 Naam: {name}
-📱 Telefoonnummer: {number}
-✉️ E-mailadres: {email}
 
 📝 Transcript:
 {transcript}
@@ -54,8 +42,9 @@ def handle_transcript():
         send_email(subject, body)
         return '✅ Transcript ontvangen en gemaild', 200
     except Exception as e:
-        print("❌ Fout bij verzenden e-mail:", str(e))
+        print("❌ Fout bij verzenden e-mail:", str(e), flush=True)
         return '❌ Fout bij verzenden e-mail', 500
+
 
 def send_email(subject, body):
     msg = EmailMessage()
