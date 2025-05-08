@@ -72,20 +72,24 @@ def handle_transcript():
         print("❌ Fout bij verzenden e-mail:", str(e), flush=True)
         return '❌ Fout bij verzenden e-mail', 500
 
-
-
-
-def send_email(subject, body):
+def send_email(subject, html_body):
     msg = EmailMessage()
     msg['Subject'] = subject
     msg['From'] = FROM_EMAIL
     msg['To'] = TO_EMAIL
-    msg.set_content(body)
+
+    # Voeg een fallback toe voor clients die geen HTML tonen
+    msg.set_content("Deze e-mail bevat een transcript van een CallFluent-gesprek.")
+
+    # Voeg de HTML-versie toe als alternatief
+    msg.add_alternative(html_body, subtype='html')
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.send_message(msg)
-    print("📧 E-mail succesvol verzonden.")
+
+    print("📧 E-mail succesvol verzonden.", flush=True)
+
 
 @app.route('/', methods=['GET'])
 def index():
