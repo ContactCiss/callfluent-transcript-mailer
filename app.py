@@ -35,7 +35,7 @@ def generate_audio_with_speed(text):
             "stability": 0.7,
             "similarity_boost": 0.8,
             "style": 1.5,
-            "speed": 1.3
+            "speed": 1.5
         }
     }
 
